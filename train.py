@@ -5,7 +5,7 @@ import os
 
 from utils import process_all_files,load_GloVe,accuracy_cal
 from model import GA_Reader
-from data_loader import DataLoader
+from data_loader import DataLoader,TestLoader
 
 def train(epochs,iterations,loader_train,loader_val,
           model,optimizer,loss_function):
@@ -36,20 +36,44 @@ def train(epochs,iterations,loader_train,loader_val,
 
 def validate(loader_val,model,loss_function):
         model.eval()
-    
-        doc,doc_char,doc_mask,query,query_char,query_mask, \
-                            char_type,char_type_mask,answer,cloze,cand, \
-                                cand_mask,qe_comm=loader_val.__load_next__()
-                                
-        output=model( doc,doc_char,doc_mask,query,query_char,query_mask,
-            char_type,char_type_mask,answer,cloze,cand,
-                cand_mask,qe_comm)
+        return_loss=0
+        accuracy=0
         
-        accuracy=accuracy_cal(output,answer)
-        loss=loss_function(output,answer)
+        for _ in range(loader_val.examples//loader_val.batch_size):
+                doc,doc_char,doc_mask,query,query_char,query_mask, \
+                                    char_type,char_type_mask,answer,cloze,cand, \
+                                        cand_mask,qe_comm=loader_val.__load_next__()
+                                        
+                output=model( doc,doc_char,doc_mask,query,query_char,query_mask,
+                    char_type,char_type_mask,answer,cloze,cand,
+                        cand_mask,qe_comm)
         
-        return loss.item(),accuracy
+                accuracy+=accuracy_cal(output,answer)
+                loss=loss_function(output,answer)
+                return_loss+=loss.item()
+        
+        return_loss/=(loader_val.examples//loader_val.batch_size)
+        accuracy=100*accuracy/loader_val.examples
+        
+        return return_loss,accuracy
 
+def test(loader_test,model):
+        model.eval()
+        accuracy=0
+        for _ in range(loader_test.examples//loader_test.batch_size):
+                doc,doc_char,doc_mask,query,query_char,query_mask, \
+                                    char_type,char_type_mask,answer,cloze,cand, \
+                                        cand_mask,qe_comm=loader_test.__load_next__()
+                                        
+                output=model( doc,doc_char,doc_mask,query,query_char,query_mask,
+                    char_type,char_type_mask,answer,cloze,cand,
+                        cand_mask,qe_comm)
+        
+                accuracy+=accuracy_cal(output,answer)
+                
+        accuracy=100*accuracy/loader_test.examples
+        print('test accuracy=',accuracy)
+        
 def main(args):
         word_to_int,int_to_word,char_to_int,int_to_char, \
             training_data=process_all_files(args.train_file)
@@ -62,10 +86,16 @@ def main(args):
         
         optimizer=optim.Adam(model.parameters(),lr=args.lr)
         data_loader_train=DataLoader(training_data[:args.training_size],args.batch_size)
-        data_loader_validate=DataLoader(training_data[args.training_size:],args.batch_size)
+        data_loader_validate=TestLoader(training_data[args.training_size:args. \
+                                                      training_size+args.dev_size],args.dev_size)
+        data_loader_test=TestLoader(training_data[args. \
+                                                  training_size_args.dev_size:args. \
+                                                      training_size+args.dev_size+args.test_size],args.test_size)
         
         train(args.epochs,args.iterations,data_loader_train,
               data_loader_validate,model,optimizer,loss_function)
+        
+        test(data_loader_test,model)
         
 def setup():
         parser=argparse.ArgumentParser('argument parser')
@@ -82,9 +112,9 @@ def setup():
         parser.add_argument('--gru_layers',type=int,default=3)
         parser.add_argument('--embed_file',type=str,default=os.getcwd()+'/word2vec_glove.text')
         parser.add_argument('--train_file',type=str,default=os.getcwd()+'/train/')
-        parser.add_argument('--dev_file',type=str,default=os.getcwd()+'/validation/')
-        parser.add_argument('--test_file',type=str,default=os.getcwd()+'/test/')
-        parser.add_argument('--training_size',type=int,default=380,298)
+        parser.add_argument('--train_size',type=int,default=380298)
+        parser.add_argument('--dev_size',type=int,default=3924)
+        parser.add_argument('--test_size',type=int,default=3198)
         
         args=parser.parse_args()
         
