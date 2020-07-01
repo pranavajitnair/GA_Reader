@@ -135,7 +135,7 @@ def accuracy_cal(output,answer):
                 if pred[i]==answer[i]:
                         count+=1
                         
-        return 100*count/int(pred.shape[0])
+        return count
 
 def store_in_file(word_to_int,int_to_word,char_to_int,
                   int_to_char,training_data):
