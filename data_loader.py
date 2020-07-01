@@ -102,8 +102,8 @@ class TestLoader(DataLoader):
                 self.counter=0
                 
         def get_data(self):
-                data=self.data[self.counter:self.count+2]
-                self.counter+=2
+                data=self.data[self.counter:self.count+self.batch_size]
+                self.counter+=self.batch_size
                 if self.counter==self.examples:
                         self.reset_counter()
                         
