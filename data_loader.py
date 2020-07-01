@@ -6,9 +6,14 @@ class DataLoader(object):
         def __init__(self,training_data,batch_size):
                 self.training_data=training_data
                 self.batch_size=batch_size
-                
-        def __load_next__(self):
+        
+        def get_data(self):
                 data=random.choices(self.training_data,k=self.batch_size)
+                
+                return data
+            
+        def __load_next__(self):
+                data=self.get_data()
                 
                 max_query_len,max_doc_len,max_cand_len,max_word_len=0,0,0,0
                 ans=[]
@@ -84,3 +89,22 @@ class DataLoader(object):
                                         
                 return docs,doc_char,docs_mask,queries,query_char,queries_mask, \
                     char_type,char_type_mask,answers,clozes,cands,cand_mask,qe_comm
+                    
+                    
+class TestLoader(DataLoader):
+        def __init__(self,data,num_examples,batch_size=2):
+                self.data=data
+                self.examples=num_examples
+                self.counter=0
+                self.batch_size=batch_size
+                
+        def reset_counter(self):
+                self.counter=0
+                
+        def get_data(self):
+                data=self.data[self.counter:self.count+2]
+                self.counter+=2
+                if self.counter==self.examples:
+                        self.reset_counter()
+                        
+                return data
