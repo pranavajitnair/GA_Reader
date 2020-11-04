@@ -123,7 +123,9 @@ class GA_Reader(nn.Module):
         def attention(self,D,Q,doc_mask,query_mask):
                 mask_Q=query_mask.unsqueeze(1).expand(-1,D.shape[1],-1)
                 mask_D=doc_mask.unsqueeze(-1).expand(-1,-1,Q.shape[1])
-                attn=F.softmax(torch.bmm(D,Q.transpose(-1,-2)),dim=-1)*mask_Q*mask_D
+                attn_temp=torch.bmm(D,Q.transpose(-1,-2))
+                attn_temp=attn_temp+(1-mask_Q)*1e-9+(1-mask_D)*1e-9
+                attn=F.softmax(attn_temp,dim=-1)
                 
                 weights=torch.bmm(attn,Q)
                 output=weights*D
